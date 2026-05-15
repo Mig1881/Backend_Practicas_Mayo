@@ -16,4 +16,7 @@ public class ItemOutDto {
     private Float price;
     private Boolean isNew;
     private LocalDate releaseDate;
+
+    // Atributo para cargar la imagen
+    private String imageUrl;
 }
