@@ -18,19 +18,13 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      # 1. Adaptamos el .env para MySQL y anulamos el Config Server para el test
+      # 1. Creamos el .env solo con lo esencial
       - name: Crear archivo .env
         run: |
           touch .env
           echo "MYSQL_ROOT_PASSWORD=root" >> .env
           echo "MYSQL_DATABASE=bbdd_cozybites_dev" >> .env
           echo "JWT_SECRET=FirmaSecretaFicticiaParaGitHubActionsQueSeaMuyLarga123456789" >> .env
-          echo "SPRING_CONFIG_IMPORT=" >> .env
-          echo "SPRING_CLOUD_CONFIG_ENABLED=false" >> .env
-          echo "SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/bbdd_cozybites_dev" >> .env
-          echo "SPRING_DATASOURCE_USERNAME=root" >> .env
-          echo "SPRING_DATASOURCE_PASSWORD=root" >> .env
-          echo "SPRING_JPA_HIBERNATE_DDL_AUTO=update" >> .env
 
       # 2. Levantamos SOLO la base de datos usando tu archivo específico
       - name: Levantar Base de Datos MySQL
@@ -44,13 +38,13 @@ jobs:
       - name: Construir imagen Docker de la API
         run: docker build -f Dockerfile.github -t apicozybites-api .
 
-      # 5. Levantamos la API leyendo las variables del .env
+      # 5. Levantamos la API activando el perfil "ci"
       - name: Levantar API
-        run: docker run -d --name apicozybites-api --network host --env-file .env apicozybites-api
+        run: docker run -d --name apicozybites-api --network host --env-file .env -e "SPRING_PROFILES_ACTIVE=ci" apicozybites-api
 
       # 6. Damos tiempo a que Spring Boot arranque completamente
       - name: Esperar a que los servicios estén listos
-        run: sleep 30
+        run: sleep 45
 
       # 7. Lanzamos Newman
       - name: Instalar Newman
@@ -95,5 +89,4 @@ jobs:
           context: .
           file: ./Dockerfile.github
           push: true
-          # Cambiamos el nombre de la imagen a apicozybites-api
           tags: mig1881/apicozybites-api:latest
