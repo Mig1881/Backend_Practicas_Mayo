@@ -28,7 +28,8 @@ public class CustomerService {
         } else if (email == null) {
             customerList = customerRepository.findByName(name);
         } else if (name == null) {
-            customerList = customerRepository.findByEmail(email);
+            java.util.Optional<Customer> optCustomer = customerRepository.findByEmail(email);
+            customerList = optCustomer.isPresent() ? List.of(optCustomer.get()) : java.util.List.of();
         } else {
             customerList = customerRepository.findByNameAndEmail(name, email);
         }
