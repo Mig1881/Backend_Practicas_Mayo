@@ -34,34 +34,72 @@ public class ItemService {
             itemList = itemRepository.findByNameAndDescription(name, description);
         }
 
-        return modelMapper.map(itemList, new TypeToken<List<ItemOutDto>>() {
-        }.getType());
+        return itemList.stream()
+                .map(this::mapToOutDto)
+                .toList();
     }
 
+    // Devuelve la entidad real de la BBDD para poder acceder a la imagen en el endpoint específico
+    // Para uso interno, entidad completa, incluida la imagen byte[]
     public Item get(long id) throws ItemNotFoundException {
         return itemRepository.findById(id).orElseThrow(ItemNotFoundException::new);
     }
 
+    // Devuelve el DTO con la URL de la imagen para el endpoint general
+    // Para responder al cliente, sin byte[], con imageUrl
+    public ItemOutDto getDto(long id) throws ItemNotFoundException {
+        Item item = itemRepository.findById(id).orElseThrow(ItemNotFoundException::new);
+        return mapToOutDto(item);
+    }
 
-    public ItemOutDto add(ItemInDto itemInDto) {
+
+    // --- POST NUEVO que permite subida CON IMAGEN
+    public ItemOutDto addWithImage(ItemInDto itemInDto) {
         Item item = modelMapper.map(itemInDto, Item.class);
-        Item newItem = itemRepository.save(item);
 
-        return modelMapper.map(newItem, ItemOutDto.class);
+        // Si hay imagen en el DTO, la agrego
+        if (itemInDto.getImage() != null) {
+            item.setImage(itemInDto.getImage());  // Aquí guardo la imagen en el producto
+        }
+
+        Item newItem = itemRepository.save(item);
+        return mapToOutDto(newItem);
     }
 
     public ItemOutDto modify(long itemId, ItemInDto itemInDto) throws ItemNotFoundException {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(ItemNotFoundException::new);
 
-        modelMapper.map(itemInDto, item);
-        itemRepository.save(item);
+        byte[] currentImage = item.getImage();
 
-        return modelMapper.map(item, ItemOutDto.class);
+        modelMapper.map(itemInDto, item);
+
+        if (itemInDto.getImage() == null) { // Si no se envía nueva imagen, mantengo la actual
+            item.setImage(currentImage);
+        } else {
+            item.setImage(itemInDto.getImage()); // Si se envía nueva imagen, la actualizo
+        }
+
+        Item updatedItem = itemRepository.save(item);
+
+        return mapToOutDto(updatedItem);
     }
 
     public void remove(long menuItemId) throws ItemNotFoundException {
         itemRepository.findById(menuItemId).orElseThrow(ItemNotFoundException::new);
         itemRepository.deleteById(menuItemId);
+    }
+
+    // Metodo auxiliar para convertir Item a ItemOutDto, incluyendo la URL de la imagen
+    private ItemOutDto mapToOutDto(Item item) {
+        return new ItemOutDto(
+                item.getId(),
+                item.getName(),
+                item.getDescription(),
+                item.getPrice(),
+                item.getIsNew(),
+                item.getReleaseDate(),
+                "/items/" + item.getId() + "/image"
+        );
     }
 }

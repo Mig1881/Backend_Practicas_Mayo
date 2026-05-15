@@ -69,23 +69,30 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginDto loginDto) {
 
-        //El mánager comprueba si el email y contraseña son correctos
+        // El mánager comprueba si el email y contraseña son correctos
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword()));
 
-        //Si es correcto, lo apuntamos en el registro de visitantes
+        // Si es correcto, lo apuntamos en el contexto de seguridad
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         // Fabricamos el Token JWT
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        //Se saca los datos del usuario autenticado
+        // Se sacan los datos del usuario autenticado
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        //Se envia al cliente
-        return ResponseEntity.ok(new JwtResponse(jwt, userDetails.getUsername(), roles));
+        // Buscamos el Customer para poder devolver también su id
+        Customer customer = customerRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow();
+
+        // Se envía al cliente
+        return ResponseEntity.ok(
+                new JwtResponse(jwt, customer.getId(), userDetails.getUsername(), roles)
+        );
     }
 }
