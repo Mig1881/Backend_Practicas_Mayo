@@ -1,0 +1,93 @@
+name: CI Cozybites Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # 1. Adaptamos el .env para MySQL según tu docker-compose.dev.yaml
+      - name: Crear archivo .env
+        run: |
+          touch .env
+          echo "MYSQL_ROOT_PASSWORD=root" >> .env
+          echo "MYSQL_DATABASE=bbdd_cozybites_dev" >> .env
+          echo "JWT_SECRET=FirmaSecretaFicticiaParaGitHubActionsQueSeaMuyLarga123456789" >> .env
+
+      # 2. Levantamos SOLO la base de datos usando tu archivo específico
+      - name: Levantar Base de Datos MySQL
+        run: docker compose -f docker-compose.dev.yaml up -d
+
+      # 3. Compilamos el código Java
+      - name: Compilar proyecto Spring Boot
+        run: mvn package -DskipTests
+
+      # 4. Construimos la imagen de tu API indicando el archivo exacto
+      - name: Construir imagen Docker de la API
+        run: docker build -f Dockerfile.github -t apicozybites-api .
+
+      # 5. Levantamos la API. Usamos --network host para que pueda acceder a localhost:3306
+      - name: Levantar API
+        run: docker run -d --name apicozybites-api --network host apicozybites-api
+
+      # 6. Damos tiempo a que Spring Boot arranque completamente
+      - name: Esperar a que los servicios estén listos
+        run: sleep 30
+
+      # 7. Lanzamos Newman
+      - name: Instalar Newman
+        run: npm install -g newman
+
+      - name: Ejecutar tests de Postman
+        run: newman run -e local.postman_environment.json practicas.postman_collection.json
+
+      # 8. Logs en caso de desastre para depurar
+      - name: Imprimir logs de contenedores en caso de fallo
+        if: failure()
+        run: |
+          echo "=== LOGS DE LA API ==="
+          docker logs apicozybites-api
+          echo "=== LOGS DE LA BASE DE DATOS ==="
+          docker logs bbdd_cozybites_dev-db
+
+  build-and-push:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Compilar proyecto para Docker
+        run: mvn package -DskipTests
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.github
+          push: true
+          # Cambiamos el nombre de la imagen a apicozybites-api
+          tags: mig1881/apicozybites-api:latest

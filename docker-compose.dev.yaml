@@ -1,4 +1,4 @@
-name: kebapi
+name: apicozybites
 services:
   db:
     image: mysql:8.0.42-oracle
