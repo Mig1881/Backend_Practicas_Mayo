@@ -1,0 +1,11 @@
+name: kebapi
+services:
+  db:
+    image: mysql:8.0.42-oracle
+    container_name: bbdd_cozybites_dev-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bbdd_cozybites_dev
+    ports:
+      - "3306:3306"
