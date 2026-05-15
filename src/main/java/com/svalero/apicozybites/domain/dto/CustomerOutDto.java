@@ -20,4 +20,5 @@ public class CustomerOutDto {
   private int age;
   private boolean advertising;
   private LocalDate registrationDate;
+  private String profileImageUrl;
 }

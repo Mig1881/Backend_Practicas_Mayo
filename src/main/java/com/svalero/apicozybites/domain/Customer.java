@@ -36,6 +36,9 @@ public class Customer {
     private boolean advertising = false;
     @Column
     private LocalDate registrationDate;
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
     //
     @OneToMany(mappedBy = "customer")
     @JsonBackReference(value="customers_orders")

@@ -29,6 +29,12 @@ public class Item {
     private Boolean isNew = true;
     @Column
     private LocalDate releaseDate;
+
+    // Campo para almacenar la imagen en la BBDD
+    @Lob
+    @Column(columnDefinition = "MEDIUMBLOB")
+    private byte[] image;
+
     //
     @OneToMany(mappedBy = "item")
     @JsonBackReference(value="items_orders")
