@@ -4,6 +4,7 @@ package com.svalero.apicozybites.controller;
 import com.svalero.apicozybites.domain.Customer;
 import com.svalero.apicozybites.domain.dto.CustomerInDto;
 import com.svalero.apicozybites.domain.dto.CustomerOutDto;
+import com.svalero.apicozybites.domain.dto.CustomerProfileUpdateDto;
 import com.svalero.apicozybites.exception.CustomerNotFoundException;
 import com.svalero.apicozybites.service.CustomerService;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,6 +33,36 @@ public class CustomerController {
 
         List<CustomerOutDto> customers = customerService.getAll(name, email);
         return new ResponseEntity<>(customers, HttpStatus.OK);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<CustomerOutDto> getMyProfile(Authentication authentication)
+            throws CustomerNotFoundException {
+
+        CustomerOutDto customer = customerService.getProfile(authentication.getName());
+        return new ResponseEntity<>(customer, HttpStatus.OK);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<CustomerOutDto> updateMyProfile(
+            Authentication authentication,
+            @Valid @RequestBody CustomerProfileUpdateDto profileDto)
+            throws CustomerNotFoundException {
+
+        CustomerOutDto updatedCustomer = customerService.updateProfile(
+                authentication.getName(),
+                profileDto
+        );
+
+        return new ResponseEntity<>(updatedCustomer, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMyProfile(Authentication authentication)
+            throws CustomerNotFoundException {
+
+        customerService.deleteProfile(authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{customerId}")

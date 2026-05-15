@@ -58,7 +58,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}")
-    public ResponseEntity<OrderOutDto> modifyItem(@PathVariable @Valid long orderId, @RequestBody OrderInDto order) throws OrderNotFoundException, CustomerNotFoundException, ItemNotFoundException {
+    public ResponseEntity<OrderOutDto> modifyItem(@PathVariable long orderId,@Valid  @RequestBody OrderInDto order) throws OrderNotFoundException, CustomerNotFoundException, ItemNotFoundException {
         logger.info("Begin Modify Order");
         OrderOutDto modifiedOrder = orderService.modify(orderId, order);
         logger.info("End Modify Order");
